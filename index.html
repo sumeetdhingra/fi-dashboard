@@ -449,6 +449,7 @@ function fmtUsd(n){ if (!isFinite(n)) return '—'; return '$'+Math.round(n).toL
 function fmtInr(n){ if (!isFinite(n)) return '—'; return '₹'+Math.round(n).toLocaleString('en-IN'); }
 
 const HORIZON = 60;
+const CONTRIB_END_AGE = 60; // stop adding yearly contributions once projected age exceeds this
 
 function calcRetirement(){
   const { currentAge, needsUSA, needsIndia, dollarToInr, inflationUSA, inflationIndia } = state.common;
@@ -474,11 +475,11 @@ function calcRetirement(){
     corpusIndiaSeries.push((annualNeedsIndiaUsd * Math.pow(1+infIndia, y)) / 0.03 );
   }
 
-  const proj = projectCorpus(startCorpus, annualContrib, weightedReturn, HORIZON);
+  const age = Number(currentAge)||null;
+
+  const proj = projectCorpus(startCorpus, annualContrib, weightedReturn, HORIZON, age || 0);
   const fiUsa   = firstYearReachingSeries(proj, corpusUsaSeries);
   const fiIndia = firstYearReachingSeries(proj, corpusIndiaSeries);
-
-  const age = Number(currentAge)||null;
 
   return {
     startCorpus, annualContrib, weightedReturn,
@@ -495,11 +496,12 @@ function calcRetirement(){
   };
 }
 
-function projectCorpus(start, contrib, rate, years){
+function projectCorpus(start, contrib, rate, years, baseAge){
   const arr = [start];
   let v = start;
   for (let y=1; y<=years; y++){
-    v = (v + contrib) * (1 + rate);
+    const c = (baseAge + y) <= CONTRIB_END_AGE ? contrib : 0;
+    v = (v + c) * (1 + rate);
     arr.push(v);
   }
   return arr;
@@ -516,6 +518,7 @@ function firstYearReachingSeries(proj, targetSeries){
 /* Project all investments by type — used for the age-slider chart */
 function projectAllByType(){
   const types = ['liquid','retirement','immovable'];
+  const baseAge = Number(state.common.currentAge) || 0;
   const result = {}; // { type: number[] length HORIZON+1 }
   types.forEach(t => result[t] = new Array(HORIZON+1).fill(0));
 
@@ -527,7 +530,8 @@ function projectAllByType(){
     let v = start;
     result[t][0] += v;
     for (let y=1; y<=HORIZON; y++){
-      v = (v + contrib) * (1 + rate);
+      const c = (baseAge + y) <= CONTRIB_END_AGE ? contrib : 0;
+      v = (v + c) * (1 + rate);
       result[t][y] += v;
     }
   });

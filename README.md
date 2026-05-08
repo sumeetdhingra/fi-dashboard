@@ -44,6 +44,7 @@ The script will auto-create two tabs in your sheet:
 - Withdrawal rate: **3% p.a.**
 - Calculation uses **liquid investments only** (excludes retirement & immovable).
 - For each future year, the corpus is projected as `corpus = (corpus + yearly_contribution) * (1 + return)`, using the weighted-average return across your liquid accounts.
+- **Contributions stop after age 60.** Once the projected age exceeds 60, no new yearly contribution is added — the corpus continues to compound on returns alone. This applies to both the FI-age math and the slider chart.
 - **Inflation-adjusted needs** — at year *Y* from today:
   - `needs_USA(Y)   = (monthly_needs_USA × 12) × (1 + inflation_USA)^Y`
   - `needs_India(Y) = ((monthly_needs_INDIA × 12) / USD_to_INR) × (1 + inflation_India)^Y`
