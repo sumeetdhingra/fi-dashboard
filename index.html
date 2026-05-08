@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FI Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0f172a; --card:#1e293b; --card2:#273449; --text:#e2e8f0;
+    --muted:#94a3b8; --accent:#22d3ee; --accent2:#a78bfa; --good:#34d399;
+    --warn:#fbbf24; --bad:#f87171; --border:#334155;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text)}
+  header{background:linear-gradient(135deg,#1e293b,#0f172a);border-bottom:1px solid var(--border);padding:18px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+  header h1{margin:0;font-size:20px;letter-spacing:.3px}
+  header h1 span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .tabs{display:flex;gap:6px}
+  .tab{background:transparent;color:var(--muted);border:1px solid var(--border);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px}
+  .tab.active{background:var(--accent);color:#0b1220;border-color:var(--accent);font-weight:600}
+  main{padding:24px 28px;max-width:1400px;margin:0 auto}
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px}
+  .panel h2{margin:0 0 16px;font-size:16px;color:var(--text);display:flex;justify-content:space-between;align-items:center}
+  .grid{display:grid;gap:14px}
+  .grid-4{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .grid-2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+  input,select,button{font-family:inherit;font-size:14px}
+  input,select{width:100%;padding:10px 12px;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);outline:none}
+  input:focus,select:focus{border-color:var(--accent)}
+  .btn{padding:10px 18px;border-radius:8px;border:none;cursor:pointer;font-weight:600;font-size:14px;transition:transform .1s}
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:var(--accent);color:#0b1220}
+  .btn-secondary{background:var(--card2);color:var(--text);border:1px solid var(--border)}
+  .btn-danger{background:transparent;color:var(--bad);border:1px solid var(--bad);padding:6px 10px;font-size:12px}
+  .btn-add{background:var(--accent2);color:#0b1220}
+  table{width:100%;border-collapse:collapse;margin-top:8px}
+  th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);font-size:13px}
+  th{color:var(--muted);font-weight:500;text-transform:uppercase;font-size:11px;letter-spacing:.5px}
+  td input,td select{padding:6px 8px;font-size:13px}
+  .row-actions{text-align:center;width:80px}
+  .toolbar{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .stat{background:linear-gradient(135deg,var(--card2),var(--card));border:1px solid var(--border);border-radius:14px;padding:18px}
+  .stat .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .stat .value{font-size:26px;font-weight:700;margin-top:6px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stat.green .value{background:linear-gradient(90deg,var(--good),#10b981);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stat.warm .value{background:linear-gradient(90deg,var(--warn),#f59e0b);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hidden{display:none !important}
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--card2);border:1px solid var(--border);padding:14px 20px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.4);transform:translateY(100px);opacity:0;transition:all .25s;font-size:13px;max-width:340px}
+  .toast.show{transform:translateY(0);opacity:1}
+  .toast.success{border-color:var(--good)}
+  .toast.error{border-color:var(--bad)}
+  .small{font-size:12px;color:var(--muted)}
+  .chart-wrap{position:relative;height:280px}
+  details{margin-top:10px}
+  details summary{cursor:pointer;color:var(--muted);font-size:13px;padding:6px 0}
+  details summary:hover{color:var(--accent)}
+  pre{background:#0b1220;border:1px solid var(--border);border-radius:8px;padding:14px;overflow:auto;font-size:12px;max-height:340px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;background:var(--card2);border:1px solid var(--border);color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .pill.liquid{color:var(--accent);border-color:var(--accent)}
+  .pill.retirement{color:var(--accent2);border-color:var(--accent2)}
+  .pill.immovable{color:var(--warn);border-color:var(--warn)}
+  .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+  .status-dot.ok{background:var(--good)}
+  .status-dot.off{background:var(--bad)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span>FI Dashboard</span> <span style="color:var(--muted);font-weight:400;font-size:14px">— Financial Independence Planner</span></h1>
+  <div class="tabs">
+    <button class="tab active" data-tab="entry">Data Entry</button>
+    <button class="tab" data-tab="dashboard">Dashboard</button>
+    <button class="tab" data-tab="settings">Settings</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- SETTINGS -->
+  <section id="tab-settings" class="hidden">
+    <div class="panel">
+      <h2>Google Sheets Connection</h2>
+      <p class="small">Paste the Web App URL of the Google Apps Script bound to your Google Sheet. (See setup instructions below.)</p>
+      <div class="grid grid-2">
+        <div>
+          <label>Apps Script Web App URL</label>
+          <input type="url" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec" />
+        </div>
+        <div>
+          <label>Google Sheet URL <span class="small">(for reference only)</span></label>
+          <input type="url" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..." />
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-primary" id="btnSaveSettings">Save Connection</button>
+        <button class="btn btn-secondary" id="btnTestConnection">Test Connection</button>
+        <span id="connStatus" class="small"><span class="status-dot off"></span>Not connected</span>
+      </div>
+
+      <details>
+        <summary>Setup Instructions (click to expand)</summary>
+<pre>1. Create a new Google Sheet (any name).
+2. In the sheet menu: Extensions → Apps Script.
+3. Delete the default code, paste the contents of apps-script.gs (provided alongside this file).
+4. Click Deploy → New deployment → Type: Web app.
+   - Description: FI Dashboard
+   - Execute as: Me
+   - Who has access: Anyone
+   Click Deploy and authorize the script.
+5. Copy the Web App URL (ends with /exec) and paste it above.
+6. Click "Save Connection" then "Test Connection".
+
+The script will auto-create two tabs in your sheet: "Common" and "Investments".
+Your data is stored in YOUR Google Sheet only — nothing is sent anywhere else.</pre>
+      </details>
+    </div>
+  </section>
+
+  <!-- DATA ENTRY -->
+  <section id="tab-entry">
+    <div class="panel">
+      <h2>Common Inputs</h2>
+      <div class="grid grid-4">
+        <div>
+          <label>Current Age</label>
+          <input type="number" id="currentAge" min="18" max="100" step="1" placeholder="e.g. 35"/>
+        </div>
+        <div>
+          <label>Monthly Needs — USA (USD)</label>
+          <input type="number" id="needsUSA" min="0" step="100" placeholder="e.g. 6000"/>
+        </div>
+        <div>
+          <label>Monthly Needs — India (INR)</label>
+          <input type="number" id="needsIndia" min="0" step="1000" placeholder="e.g. 200000"/>
+        </div>
+        <div>
+          <label>USD → INR Rate</label>
+          <input type="number" id="dollarToInr" min="1" step="0.5" placeholder="e.g. 84"/>
+        </div>
+        <div>
+          <label>Inflation — USA (%)</label>
+          <input type="number" id="inflationUSA" min="0" max="50" step="0.1" placeholder="e.g. 3"/>
+        </div>
+        <div>
+          <label>Inflation — India (%)</label>
+          <input type="number" id="inflationIndia" min="0" max="50" step="0.1" placeholder="e.g. 6"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>
+        Investments (USD)
+        <button class="btn btn-add" id="btnAddInvestment">+ Add Investment</button>
+      </h2>
+      <table id="invTable">
+        <thead>
+          <tr>
+            <th>Account</th>
+            <th>Current Amount ($)</th>
+            <th>Yearly Contribution ($)</th>
+            <th>Yearly Return (%)</th>
+            <th>Type</th>
+            <th class="row-actions">Action</th>
+          </tr>
+        </thead>
+        <tbody id="invBody"></tbody>
+      </table>
+      <p class="small" id="invEmpty">No investments yet. Click <em>Add Investment</em> to get started.</p>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn btn-primary" id="btnSave">Save to Google Sheet</button>
+      <button class="btn btn-secondary" id="btnLoad">Reload from Google Sheet</button>
+      <button class="btn btn-secondary" id="btnRecalc">Recalculate</button>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section id="tab-dashboard" class="hidden">
+    <div class="grid grid-4" id="statRow">
+      <div class="stat"><div class="label">Total Investments</div><div class="value" id="statTotal">$0</div></div>
+      <div class="stat"><div class="label">Total Liquid</div><div class="value" id="statLiquid">$0</div></div>
+      <div class="stat green"><div class="label">FI Age — India</div><div class="value" id="statFiIndia">—</div></div>
+      <div class="stat warm"><div class="label">FI Age — USA</div><div class="value" id="statFiUsa">—</div></div>
+    </div>
+
+    <div class="panel">
+      <h2>Investments by Type</h2>
+      <div class="grid grid-2">
+        <div class="chart-wrap"><canvas id="typeChart"></canvas></div>
+        <div>
+          <table>
+            <thead><tr><th>Type</th><th>Amount</th><th>Yearly Add</th><th>Avg Return</th></tr></thead>
+            <tbody id="typeTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>
+        Investments at a Future Age
+        <span class="small" id="sliderAgeLabel">—</span>
+      </h2>
+      <p class="small">Drag the slider to see projected investments at any future age (using each account's own contribution & return).</p>
+      <div style="display:flex;align-items:center;gap:14px;margin:6px 0 14px">
+        <span class="small" id="sliderMin">—</span>
+        <input type="range" id="ageSlider" min="0" max="60" step="1" value="0" style="flex:1"/>
+        <span class="small" id="sliderMax">—</span>
+      </div>
+      <div class="grid grid-4">
+        <div class="stat"><div class="label">Total at Age</div><div class="value" id="sliderTotal">$0</div></div>
+        <div class="stat"><div class="label">Liquid</div><div class="value" id="sliderLiquid">$0</div></div>
+        <div class="stat"><div class="label">Retirement</div><div class="value" id="sliderRetirement">$0</div></div>
+        <div class="stat warm"><div class="label">Immovable</div><div class="value" id="sliderImmovable">$0</div></div>
+      </div>
+      <div class="chart-wrap" style="height:300px;margin-top:18px"><canvas id="sliderChart"></canvas></div>
+    </div>
+
+    <div class="panel">
+      <h2>Retirement Calculation Detail</h2>
+      <div class="grid grid-2">
+        <div>
+          <p class="small"><strong>Withdrawal Rate:</strong> 3% per annum</p>
+          <p class="small"><strong>Liquid Investments Only:</strong> calculation excludes immovable & retirement accounts.</p>
+          <p class="small"><strong>Corpus needed today (USA):</strong> <span id="corpusUsa">—</span></p>
+          <p class="small"><strong>Corpus needed today (India):</strong> <span id="corpusIndia">—</span> <span class="small" id="corpusIndiaInr"></span></p>
+          <p class="small"><strong>Corpus at FI age (USA, infl-adj):</strong> <span id="corpusUsaAtFi">—</span></p>
+          <p class="small"><strong>Corpus at FI age (India, infl-adj):</strong> <span id="corpusIndiaAtFi">—</span></p>
+        </div>
+        <div>
+          <p class="small"><strong>Current Age:</strong> <span id="dispAge">—</span></p>
+          <p class="small"><strong>Current Liquid Corpus:</strong> <span id="dispLiquid">—</span></p>
+          <p class="small"><strong>Annual Liquid Contribution:</strong> <span id="dispContrib">—</span></p>
+          <p class="small"><strong>Weighted Avg Return:</strong> <span id="dispReturn">—</span></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* ===========================================================
+   FI Dashboard — single-page app (no server)
+   Persists data via Google Apps Script web-app endpoint.
+   =========================================================== */
+
+const LS = {
+  scriptUrl: 'fi.scriptUrl',
+  sheetUrl:  'fi.sheetUrl',
+  cache:     'fi.cache',
+};
+
+const state = {
+  common: { currentAge:'', needsUSA:'', needsIndia:'', dollarToInr:'', inflationUSA:'', inflationIndia:'' },
+  investments: [],
+};
+
+let typeChart, sliderChart;
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('tab-entry').classList.toggle('hidden', tab!=='entry');
+    document.getElementById('tab-dashboard').classList.toggle('hidden', tab!=='dashboard');
+    document.getElementById('tab-settings').classList.toggle('hidden', tab!=='settings');
+    if (tab==='dashboard') renderDashboard();
+  });
+});
+
+/* ---------- Toast ---------- */
+function toast(msg, kind='success'){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${kind}`;
+  clearTimeout(toast._tm);
+  toast._tm = setTimeout(()=>t.classList.remove('show'), 3200);
+}
+
+/* ---------- Settings ---------- */
+function loadSettings(){
+  document.getElementById('scriptUrl').value = localStorage.getItem(LS.scriptUrl) || '';
+  document.getElementById('sheetUrl').value  = localStorage.getItem(LS.sheetUrl)  || '';
+  updateConnStatus();
+}
+function updateConnStatus(){
+  const url = localStorage.getItem(LS.scriptUrl);
+  const el = document.getElementById('connStatus');
+  el.innerHTML = url
+    ? '<span class="status-dot ok"></span>Connected'
+    : '<span class="status-dot off"></span>Not connected';
+}
+document.getElementById('btnSaveSettings').addEventListener('click', ()=>{
+  const s = document.getElementById('scriptUrl').value.trim();
+  const h = document.getElementById('sheetUrl').value.trim();
+  if (!s) { toast('Please enter the Apps Script Web App URL', 'error'); return; }
+  localStorage.setItem(LS.scriptUrl, s);
+  localStorage.setItem(LS.sheetUrl, h);
+  updateConnStatus();
+  toast('Connection saved');
+});
+document.getElementById('btnTestConnection').addEventListener('click', async ()=>{
+  try{
+    const data = await apiGet();
+    toast('Connected ✓ — sheet has '+(data.investments?.length||0)+' investments saved');
+  }catch(e){ toast('Connection failed: '+e.message, 'error'); }
+});
+
+/* ---------- Investment rows ---------- */
+const TYPES = ['liquid','retirement','immovable'];
+
+function renderInvestments(){
+  const tbody = document.getElementById('invBody');
+  tbody.innerHTML = '';
+  document.getElementById('invEmpty').style.display = state.investments.length ? 'none':'block';
+  state.investments.forEach((inv, idx)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" data-f="account" value="${escapeHtml(inv.account||'')}" placeholder="e.g. Fidelity 401k"/></td>
+      <td><input type="number" data-f="amount" value="${inv.amount ?? ''}" min="0" step="100"/></td>
+      <td><input type="number" data-f="yearlyContribution" value="${inv.yearlyContribution ?? ''}" min="0" step="100"/></td>
+      <td><input type="number" data-f="yearlyReturn" value="${inv.yearlyReturn ?? ''}" min="0" max="50" step="0.1"/></td>
+      <td>
+        <select data-f="type">
+          ${TYPES.map(t=>`<option value="${t}" ${inv.type===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </td>
+      <td class="row-actions"><button class="btn btn-danger" data-del="${idx}">Remove</button></td>`;
+    tbody.appendChild(tr);
+    tr.querySelectorAll('input,select').forEach(el=>{
+      el.addEventListener('input', ()=>{
+        const f = el.dataset.f;
+        let v = el.value;
+        if (['amount','yearlyContribution','yearlyReturn'].includes(f)) v = v===''? '': Number(v);
+        state.investments[idx][f] = v;
+      });
+    });
+    tr.querySelector('[data-del]').addEventListener('click', ()=>{
+      state.investments.splice(idx,1); renderInvestments();
+    });
+  });
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+document.getElementById('btnAddInvestment').addEventListener('click', ()=>{
+  state.investments.push({ account:'', amount:0, yearlyContribution:0, yearlyReturn:7, type:'liquid' });
+  renderInvestments();
+});
+
+/* ---------- Common-input bindings ---------- */
+['currentAge','needsUSA','needsIndia','dollarToInr','inflationUSA','inflationIndia'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', e=>{
+    state.common[id] = e.target.value===''? '' : Number(e.target.value);
+  });
+});
+function reflectCommon(){
+  for (const k of Object.keys(state.common)){
+    const el = document.getElementById(k);
+    if (el) el.value = state.common[k] ?? '';
+  }
+}
+
+/* ---------- API (Apps Script) ---------- */
+function getEndpoint(){
+  const u = localStorage.getItem(LS.scriptUrl);
+  if (!u) throw new Error('No Apps Script URL configured. Open Settings.');
+  return u;
+}
+async function apiGet(){
+  const r = await fetch(getEndpoint()+'?action=read', { method:'GET' });
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'Unknown error');
+  return j.data;
+}
+async function apiPost(payload){
+  // Use text/plain to avoid CORS preflight on Apps Script web apps.
+  const r = await fetch(getEndpoint(), {
+    method:'POST',
+    headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action:'write', data: payload }),
+  });
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'Unknown error');
+  return j.data;
+}
+
+/* ---------- Save / Load ---------- */
+document.getElementById('btnSave').addEventListener('click', async ()=>{
+  if (!validate()) return;
+  const payload = { common: state.common, investments: state.investments };
+  try{
+    await apiPost(payload);
+    localStorage.setItem(LS.cache, JSON.stringify(payload));
+    toast('Saved to Google Sheet ✓');
+  }catch(e){
+    localStorage.setItem(LS.cache, JSON.stringify(payload));
+    toast('Saved locally — Sheet error: '+e.message, 'error');
+  }
+});
+document.getElementById('btnLoad').addEventListener('click', loadFromSheet);
+document.getElementById('btnRecalc').addEventListener('click', renderDashboard);
+
+async function loadFromSheet(){
+  try{
+    const data = await apiGet();
+    if (data?.common) state.common = { ...state.common, ...data.common };
+    if (Array.isArray(data?.investments)) state.investments = data.investments;
+    reflectCommon();
+    renderInvestments();
+    localStorage.setItem(LS.cache, JSON.stringify({ common:state.common, investments:state.investments }));
+    toast('Loaded from Google Sheet ✓');
+  }catch(e){
+    toast('Could not load: '+e.message, 'error');
+  }
+}
+
+function loadCache(){
+  try{
+    const raw = localStorage.getItem(LS.cache);
+    if (!raw) return;
+    const c = JSON.parse(raw);
+    if (c.common) state.common = { ...state.common, ...c.common };
+    if (Array.isArray(c.investments)) state.investments = c.investments;
+  }catch{}
+}
+
+function validate(){
+  const c = state.common;
+  if (c.currentAge===''||c.currentAge==null) { toast('Please enter Current Age','error'); return false; }
+  if (state.investments.some(i=>!i.account)) { toast('Every investment needs an account name','error'); return false; }
+  return true;
+}
+
+/* ---------- Calculations ---------- */
+function fmtUsd(n){ if (!isFinite(n)) return '—'; return '$'+Math.round(n).toLocaleString(); }
+function fmtInr(n){ if (!isFinite(n)) return '—'; return '₹'+Math.round(n).toLocaleString('en-IN'); }
+
+const HORIZON = 60;
+
+function calcRetirement(){
+  const { currentAge, needsUSA, needsIndia, dollarToInr, inflationUSA, inflationIndia } = state.common;
+  const liquid = state.investments.filter(i=>i.type==='liquid');
+  const startCorpus = liquid.reduce((s,i)=> s + (Number(i.amount)||0), 0);
+  const annualContrib = liquid.reduce((s,i)=> s + (Number(i.yearlyContribution)||0), 0);
+  const weightedReturn = startCorpus>0
+    ? liquid.reduce((s,i)=> s + (Number(i.amount)||0)*(Number(i.yearlyReturn)||0)/100, 0) / startCorpus
+    : (liquid.length ? liquid.reduce((s,i)=>s+(Number(i.yearlyReturn)||0)/100,0)/liquid.length : 0);
+
+  const annualNeedsUsa      = (Number(needsUSA)||0) * 12;
+  const annualNeedsIndiaInr = (Number(needsIndia)||0) * 12;
+  const annualNeedsIndiaUsd = dollarToInr ? annualNeedsIndiaInr / Number(dollarToInr) : 0;
+
+  const infUsa   = (Number(inflationUSA)   || 0) / 100;
+  const infIndia = (Number(inflationIndia) || 0) / 100;
+
+  // Inflation-adjusted corpus needed at each future year (in USD)
+  const corpusUsaSeries   = [];
+  const corpusIndiaSeries = [];
+  for (let y=0; y<=HORIZON; y++){
+    corpusUsaSeries.push(  (annualNeedsUsa      * Math.pow(1+infUsa,   y)) / 0.03 );
+    corpusIndiaSeries.push((annualNeedsIndiaUsd * Math.pow(1+infIndia, y)) / 0.03 );
+  }
+
+  const proj = projectCorpus(startCorpus, annualContrib, weightedReturn, HORIZON);
+  const fiUsa   = firstYearReachingSeries(proj, corpusUsaSeries);
+  const fiIndia = firstYearReachingSeries(proj, corpusIndiaSeries);
+
+  const age = Number(currentAge)||null;
+
+  return {
+    startCorpus, annualContrib, weightedReturn,
+    annualNeedsUsa, annualNeedsIndiaUsd, annualNeedsIndiaInr,
+    infUsa, infIndia,
+    corpusUsaSeries, corpusIndiaSeries,
+    corpusUsa:   corpusUsaSeries[0],
+    corpusIndia: corpusIndiaSeries[0],
+    proj,
+    fiAgeUsa:   age && fiUsa!=null   ? age + fiUsa   : null,
+    fiAgeIndia: age && fiIndia!=null ? age + fiIndia : null,
+    fiYearsUsa:   fiUsa,
+    fiYearsIndia: fiIndia,
+  };
+}
+
+function projectCorpus(start, contrib, rate, years){
+  const arr = [start];
+  let v = start;
+  for (let y=1; y<=years; y++){
+    v = (v + contrib) * (1 + rate);
+    arr.push(v);
+  }
+  return arr;
+}
+function firstYearReachingSeries(proj, targetSeries){
+  for (let i=0; i<proj.length; i++){
+    const target = targetSeries[i];
+    if (!isFinite(target) || target<=0) continue;
+    if (proj[i] >= target) return i;
+  }
+  return null;
+}
+
+/* Project all investments by type — used for the age-slider chart */
+function projectAllByType(){
+  const types = ['liquid','retirement','immovable'];
+  const result = {}; // { type: number[] length HORIZON+1 }
+  types.forEach(t => result[t] = new Array(HORIZON+1).fill(0));
+
+  state.investments.forEach(inv => {
+    const t = types.includes(inv.type) ? inv.type : 'liquid';
+    const start  = Number(inv.amount)||0;
+    const contrib = Number(inv.yearlyContribution)||0;
+    const rate    = (Number(inv.yearlyReturn)||0)/100;
+    let v = start;
+    result[t][0] += v;
+    for (let y=1; y<=HORIZON; y++){
+      v = (v + contrib) * (1 + rate);
+      result[t][y] += v;
+    }
+  });
+  return result;
+}
+
+/* ---------- Dashboard rendering ---------- */
+function renderDashboard(){
+  const r = calcRetirement();
+
+  const total = state.investments.reduce((s,i)=> s+(Number(i.amount)||0), 0);
+  document.getElementById('statTotal').textContent  = fmtUsd(total);
+  document.getElementById('statLiquid').textContent = fmtUsd(r.startCorpus);
+  document.getElementById('statFiUsa').textContent   = r.fiAgeUsa   ? r.fiAgeUsa+' yrs'   : 'Not reached';
+  document.getElementById('statFiIndia').textContent = r.fiAgeIndia ? r.fiAgeIndia+' yrs' : 'Not reached';
+
+  // by type
+  const byType = {};
+  state.investments.forEach(i=>{
+    const t = i.type||'liquid';
+    if (!byType[t]) byType[t] = { amount:0, contribution:0, weightedRet:0 };
+    byType[t].amount       += Number(i.amount)||0;
+    byType[t].contribution += Number(i.yearlyContribution)||0;
+    byType[t].weightedRet  += (Number(i.amount)||0) * (Number(i.yearlyReturn)||0) / 100;
+  });
+  const tbody = document.getElementById('typeTable');
+  tbody.innerHTML = '';
+  Object.keys(byType).forEach(t=>{
+    const o = byType[t];
+    const avg = o.amount>0 ? (o.weightedRet/o.amount*100) : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><span class="pill ${t}">${t}</span></td><td>${fmtUsd(o.amount)}</td><td>${fmtUsd(o.contribution)}</td><td>${avg.toFixed(2)}%</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // type chart
+  const typeLabels = Object.keys(byType);
+  const typeData = typeLabels.map(t=>byType[t].amount);
+  const colors = { liquid:'#22d3ee', retirement:'#a78bfa', immovable:'#fbbf24' };
+  if (typeChart) typeChart.destroy();
+  typeChart = new Chart(document.getElementById('typeChart'), {
+    type:'doughnut',
+    data:{ labels:typeLabels, datasets:[{ data:typeData, backgroundColor:typeLabels.map(t=>colors[t]||'#64748b'), borderColor:'#1e293b', borderWidth:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ color:'#e2e8f0' } } } }
+  });
+
+  // age slider section
+  renderSlider();
+
+  // detail
+  document.getElementById('corpusUsa').textContent   = fmtUsd(r.corpusUsa);
+  document.getElementById('corpusIndia').textContent = fmtUsd(r.corpusIndia);
+  document.getElementById('corpusIndiaInr').textContent = state.common.dollarToInr ? '('+fmtInr(r.corpusIndia*Number(state.common.dollarToInr))+')' : '';
+  document.getElementById('corpusUsaAtFi').textContent   = r.fiYearsUsa!=null   ? fmtUsd(r.corpusUsaSeries[r.fiYearsUsa])     : '—';
+  document.getElementById('corpusIndiaAtFi').textContent = r.fiYearsIndia!=null ? fmtUsd(r.corpusIndiaSeries[r.fiYearsIndia]) : '—';
+  document.getElementById('dispAge').textContent     = state.common.currentAge ?? '—';
+  document.getElementById('dispLiquid').textContent  = fmtUsd(r.startCorpus);
+  document.getElementById('dispContrib').textContent = fmtUsd(r.annualContrib);
+  document.getElementById('dispReturn').textContent  = (r.weightedReturn*100).toFixed(2)+'%';
+}
+
+/* ---------- Age slider on dashboard ---------- */
+function renderSlider(){
+  const baseAge = Number(state.common.currentAge) || 0;
+  const slider  = document.getElementById('ageSlider');
+  slider.min = 0;
+  slider.max = HORIZON;
+  if (slider.value === '' || Number(slider.value) > HORIZON) slider.value = 0;
+
+  document.getElementById('sliderMin').textContent = baseAge ? `Age ${baseAge}` : 'Now';
+  document.getElementById('sliderMax').textContent = baseAge ? `Age ${baseAge+HORIZON}` : `+${HORIZON}y`;
+
+  const byType = projectAllByType();
+  const labels = byType.liquid.map((_,y)=> baseAge + y);
+
+  if (sliderChart) sliderChart.destroy();
+  sliderChart = new Chart(document.getElementById('sliderChart'), {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        { label:'Liquid',     data:byType.liquid,     borderColor:'#22d3ee', backgroundColor:'rgba(34,211,238,.55)',  fill:true, tension:.25, pointRadius:0, stack:'s' },
+        { label:'Retirement', data:byType.retirement, borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,.55)', fill:true, tension:.25, pointRadius:0, stack:'s' },
+        { label:'Immovable',  data:byType.immovable,  borderColor:'#fbbf24', backgroundColor:'rgba(251,191,36,.55)',  fill:true, tension:.25, pointRadius:0, stack:'s' },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ color:'#e2e8f0' } } },
+      scales:{
+        x:{ ticks:{ color:'#94a3b8' }, title:{ display:true, text:'Age', color:'#94a3b8' } },
+        y:{ stacked:true, ticks:{ color:'#94a3b8', callback:v=>'$'+(v/1000).toFixed(0)+'k' } }
+      }
+    }
+  });
+
+  updateSliderReadout(byType);
+  slider.oninput = ()=> updateSliderReadout(byType);
+}
+
+function updateSliderReadout(byType){
+  const slider = document.getElementById('ageSlider');
+  const yearsAhead = Number(slider.value);
+  const baseAge = Number(state.common.currentAge) || 0;
+  const age = baseAge + yearsAhead;
+
+  const liquid     = byType.liquid[yearsAhead]     || 0;
+  const retirement = byType.retirement[yearsAhead] || 0;
+  const immovable  = byType.immovable[yearsAhead]  || 0;
+  const total = liquid + retirement + immovable;
+
+  document.getElementById('sliderAgeLabel').textContent  = baseAge ? `at age ${age} (+${yearsAhead}y)` : `+${yearsAhead}y`;
+  document.getElementById('sliderTotal').textContent      = fmtUsd(total);
+  document.getElementById('sliderLiquid').textContent     = fmtUsd(liquid);
+  document.getElementById('sliderRetirement').textContent = fmtUsd(retirement);
+  document.getElementById('sliderImmovable').textContent  = fmtUsd(immovable);
+}
+
+/* ---------- Init ---------- */
+loadSettings();
+loadCache();
+reflectCommon();
+renderInvestments();
+
+// Try to load fresh from sheet on startup if connected.
+if (localStorage.getItem(LS.scriptUrl)) {
+  loadFromSheet().catch(()=>{ /* offline-friendly */ });
+}
+</script>
+
+</body>
+</html>
